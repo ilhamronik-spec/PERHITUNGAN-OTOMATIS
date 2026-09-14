@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sistem Hitung Tukin dan Uang Makan Otomatis</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;color:#163d32;background:#f8fbf9}button,input,select{font:inherit}.hidden{display:none!important}
+.login-page{position:relative;min-height:100vh;overflow:hidden;background:radial-gradient(circle at 50% 24%,#fff 0,#fbfdfc 48%,#f0f6f2 100%)}
+.login-page:before{content:"";position:absolute;left:-30px;bottom:90px;width:430px;height:560px;opacity:.09;background:linear-gradient(90deg,transparent 0 7%,#0b5b44 7% 9%,transparent 9% 18%,#0b5b44 18% 20%,transparent 20% 29%,#0b5b44 29% 31%,transparent 31% 100%),linear-gradient(0deg,transparent 0 8%,#0b5b44 8% 10%,transparent 10% 20%,#0b5b44 20% 22%,transparent 22% 34%,#0b5b44 34% 36%,transparent 36% 50%,#0b5b44 50% 52%,transparent 52% 100%);border:10px solid #0b5b44;border-bottom:0;border-radius:8px 8px 0 0;transform:skewY(-2deg)}
+.login-page:after{content:"";position:absolute;right:20px;bottom:132px;width:390px;height:310px;opacity:.065;background:radial-gradient(ellipse at 50% 64%,#0b5b44 0 33%,transparent 34%),linear-gradient(90deg,transparent 0 13%,#0b5b44 13% 17%,transparent 17% 83%,#0b5b44 83% 87%,transparent 87%);clip-path:polygon(0 100%,0 58%,12% 58%,16% 12%,20% 58%,36% 58%,50% 28%,64% 58%,80% 58%,84% 12%,88% 58%,100% 58%,100% 100%)}
+.wave-gold,.wave-green{position:absolute;left:-8%;width:116%;border-radius:50% 50% 0 0/100% 100% 0 0;pointer-events:none}.wave-gold{height:160px;bottom:-91px;background:#d7b34a;transform:rotate(-1deg)}.wave-green{height:148px;bottom:-87px;background:linear-gradient(90deg,#064c3a,#0d684e 55%,#064c3a)}
+.top-left{position:absolute;left:48px;top:31px;color:#31594d;z-index:2}.top-left .script{font-family:Georgia,serif;font-style:italic;font-size:23px;line-height:1.05}.top-left small{display:block;margin-top:10px;font-size:10px;letter-spacing:3px;line-height:1.6;color:#66758a}.trial{position:absolute;right:18%;top:34px;z-index:2;background:#fff7df;border:1px solid #e5d299;color:#7c5a13;border-radius:23px;padding:9px 18px;font-size:12px;font-weight:800;box-shadow:0 5px 20px #7b672017}.right-note{position:absolute;right:48px;top:50px;z-index:2;border-left:2px solid #d2ae45;padding-left:22px;letter-spacing:3px;font-size:10px;line-height:1.9;color:#4c5b70}
+.brand{position:relative;z-index:3;width:min(760px,92vw);margin:0 auto;padding:18px 0 115px;text-align:center}.logo{width:92px;height:92px;object-fit:contain;display:block;margin:0 auto 5px}.ministry{font-family:Georgia,serif;font-size:19px}.title{font-family:Georgia,serif;font-size:32px;margin:4px 0;font-weight:800;color:#123e31}.tag{font-size:10px;letter-spacing:6px;color:#66758a;margin-top:8px}.goldline{width:84px;height:2px;background:#c8a23b;margin:13px auto 18px}
+.login-card{width:min(505px,92vw);margin:0 auto;background:rgba(255,255,255,.96);border:1px solid #e3ebe7;border-radius:16px;box-shadow:0 18px 55px rgba(26,61,49,.13);padding:16px 26px 20px;text-align:left}.welcome{background:linear-gradient(90deg,#f0faf5,#f8fcfa);border-radius:13px;padding:14px 18px;text-align:center;margin-bottom:15px}.welcome h2{font-family:Georgia,serif;font-size:26px;margin:0 0 6px;color:#123e31}.welcome p{margin:0;font-size:12px;color:#617166;line-height:1.45}.field{margin:13px 0}.field label{display:block;font-size:13px;font-weight:800;margin-bottom:7px}.input{width:100%;height:45px;border:1px solid #d4ded9;border-radius:8px;padding:0 13px;font-size:14px;outline:none;background:white}.input:focus{border-color:#17865e;box-shadow:0 0 0 3px #17865e17}.pass-wrap{position:relative}.pass-wrap .input{padding-right:46px}.eye{position:absolute;right:7px;top:5px;width:36px;height:36px;border:0;background:transparent;color:#355b50;cursor:pointer;font-size:17px}.login-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}.link{color:#087348;font-weight:800;cursor:pointer}.primary{width:100%;border:0;border-radius:8px;background:linear-gradient(90deg,#087448,#00683f);color:#fff;font-weight:800;padding:14px 18px;font-size:15px;cursor:pointer;margin-top:13px;box-shadow:0 9px 20px #0a6d432b}.register-btn{width:min(535px,94vw);margin:16px auto 0;background:#fff;border:1px solid #e0e9e4;border-radius:13px;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 8px 28px #214c3c12;cursor:pointer}.register-btn .ico{font-size:26px;color:#087448}.register-btn b{font-family:Georgia,serif;font-size:18px}.register-btn small{color:#65756d}.credit{margin:42px auto 0;font-size:12px;color:#7f8b86}.credit:before,.credit:after{content:"";display:inline-block;width:85px;height:1px;background:#b9c6c0;vertical-align:middle;margin:0 16px}.login-msg{margin-top:11px;min-height:16px;text-align:center;font-size:12px;font-weight:700;color:#9b3027}
+.modal{position:fixed;inset:0;background:#102c2475;display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.modal.open{display:flex}.modal-card{width:min(650px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 28px 80px #0a281e55;padding:24px;text-align:left}.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.modal-head h2{margin:0;font-family:Georgia,serif;color:#0b513e}.modal-head small{color:#6a7a73}.close{border:0;background:#eef4f1;border-radius:9px;padding:8px 11px;cursor:pointer}.section-title{font-size:13px;font-weight:800;color:#0a7047;margin:18px 0 9px;padding-bottom:7px;border-bottom:1px solid #e8eeeb}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:10px;margin-top:20px}.secondary,.submit{border-radius:9px;padding:12px;font-weight:800;cursor:pointer}.secondary{flex:1;border:1px solid #d8e1dd;background:#f4f7f5}.submit{flex:2;border:0;background:#087448;color:#fff}.msg{display:none;margin-top:12px;padding:10px 12px;border-radius:8px;font-size:12px}.msg.show{display:block}.msg.ok{background:#edf9f3;color:#176743}.msg.err{background:#fff0ee;color:#9b3027}
+#app{display:none;min-height:100vh;background:#f4f7f6}.shell{display:grid;grid-template-columns:255px 1fr;min-height:100vh}.side{background:linear-gradient(180deg,#0b543f,#073f30);color:#fff;padding:24px 18px}.side-brand{display:flex;gap:10px;align-items:center;padding-bottom:18px;border-bottom:1px solid #ffffff20}.mini-logo{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:10px;padding:3px}.side h3{margin:0;font-size:15px}.side small{opacity:.75}.userbox{margin:22px 0;padding:14px;border:1px solid #ffffff2b;border-radius:12px;background:#ffffff0d;line-height:1.55}.nav{display:grid;gap:7px}.nav button{border:0;background:transparent;color:#fff;text-align:left;padding:11px 12px;border-radius:9px;cursor:pointer}.nav button.active,.nav button:hover{background:#ffffff17}.logout{margin-top:22px;width:100%;padding:10px;border:1px solid #ffffff3a;border-radius:9px;background:transparent;color:#fff;cursor:pointer}.main{padding:30px}.main h1{margin:0 0 4px;color:#123e31}.sub{color:#6b7974;margin-bottom:22px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.kpi,.panel{background:#fff;border:1px solid #e2e9e5;border-radius:14px;box-shadow:0 8px 28px #1b4a3810}.kpi{padding:18px}.kpi b{font-size:28px;display:block;color:#0b694a;margin-bottom:3px}.panel{margin-top:16px;padding:20px}.status-pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#edf9f3;color:#176743;font-size:12px;font-weight:800}
+@media(max-width:900px){.top-left,.right-note,.trial{display:none}.brand{padding-top:16px}.title{font-size:25px}.tag{letter-spacing:3px}.grid{grid-template-columns:1fr}.shell{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:1fr 1fr}.credit:before,.credit:after{width:45px}.login-page:before,.login-page:after{opacity:.04}}
+</style>
+</head>
+<body>
+<section id="login" class="login-page">
+  <div class="top-left"><div class="script">“Ikhlas<br>Melayani<br>Umat”</div><small>KEMENTERIAN AGAMA<br>REPUBLIK INDONESIA</small></div>
+  <div class="trial">⚗ Versi Uji Coba</div>
+  <div class="right-note">MODERAT<br>PROFESIONAL<br>BERINTEGRITAS<br>UNTUK UMAT</div>
+  <div class="wave-gold"></div><div class="wave-green"></div>
+  <div class="brand">
+    <img class="logo" alt="Lambang Kementerian Agama" src="https://upload.wikimedia.org/wikipedia/commons/9/99/Seal_of_the_Ministry_of_Religious_Affairs_of_the_Republic_of_Indonesia.svg">
+    <div class="ministry">Kementerian Agama Republik Indonesia</div>
+    <div class="title">Sistem Hitung Tukin dan Uang Makan Otomatis</div>
+    <div class="tag">DATA AKURAT, KINERJA LEBIH BAIK, LAYANAN LEBIH BERKAH</div>
+    <div class="goldline"></div>
+    <div class="login-card">
+      <div class="welcome"><h2>⇥ &nbsp;Selamat Datang</h2><p>Silakan masuk untuk mengelola data Tukin dan Uang Makan<br>pada satuan kerja Anda.</p></div>
+      <div class="field"><label>Username</label><input id="lu" class="input" autocomplete="username" placeholder="Masukkan username"></div>
+      <div class="field"><label>Password</label><div class="pass-wrap"><input id="lp" class="input" type="password" autocomplete="current-password" placeholder="Masukkan password"><button class="eye" type="button" onclick="togglePw()">◉</button></div></div>
+      <div class="login-row"><label><input id="remember" type="checkbox"> Ingat saya</label><span class="link" onclick="requestReset()">Lupa Password?</span></div>
+      <button class="primary" onclick="loginNow()">⇥ &nbsp; Masuk ke Sistem &nbsp; →</button>
+      <div id="loginmsg" class="login-msg"></div>
+    </div>
+    <button class="register-btn" onclick="openReg()"><span class="ico">♙+</span><span><b>Daftar Akun Baru</b><br><small>Klik untuk membuka form pendaftaran.</small></span><span style="margin-left:auto">⌄</span></button>
+    <div class="credit">Created by Ilham Choiri</div>
+  </div>
+</section>
+
+<div id="regmodal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head"><div><h2>Pendaftaran Akun</h2><small>Lengkapi data berikut untuk membuat akun baru.</small></div><button class="close" onclick="closeReg()">✕</button></div>
+    <div class="section-title">DATA AKUN</div>
+    <div class="grid"><div class="field"><label>Username</label><input id="ru" class="input" placeholder="Masukkan username"></div><div class="field"><label>Password</label><input id="rp" class="input" type="password" placeholder="Minimal 6 karakter"></div></div>
+    <div class="field"><label>Satker / Instansi</label><select id="ri" class="input"><option value="">Memuat satker...</option></select></div>
+    <div class="section-title">BIODATA</div>
+    <div class="grid"><div class="field"><label>Nama Lengkap</label><input id="rn" class="input" placeholder="Masukkan nama lengkap"></div><div class="field"><label>NIP</label><input id="rnip" class="input" inputmode="numeric" maxlength="18" placeholder="18 digit NIP"></div><div class="field"><label>No. Telepon</label><input id="rphone" class="input" placeholder="08xxxxxxxxxx"></div></div>
+    <div id="regmsg" class="msg"></div>
+    <div class="actions"><button class="secondary" onclick="closeReg()">Batal</button><button class="submit" onclick="signupNow()">Daftar Akun</button></div>
+  </div>
+</div>
+
+<section id="app">
+  <div class="shell">
+    <aside class="side">
+      <div class="side-brand"><img class="mini-logo" src="https://upload.wikimedia.org/wikipedia/commons/9/99/Seal_of_the_Ministry_of_Religious_Affairs_of_the_Republic_of_Indonesia.svg"><div><h3>SISTEM HITUNG</h3><small>Tukin • Uang Makan</small></div></div>
+      <div id="userbox" class="userbox"></div>
+      <div class="nav"><button class="active">Dashboard</button><button>Uang Makan</button><button>Tukin</button><button>Data Pegawai</button><button>Riwayat Rekap</button><button>Profil</button></div>
+      <button class="logout" onclick="logoutNow()">Keluar</button>
+    </aside>
+    <main class="main"><h1>Dashboard</h1><div id="hello" class="sub"></div><div class="kpis"><div class="kpi"><b>0</b>Rekap Uang Makan</div><div class="kpi"><b>0</b>Rekap Tukin</div><div class="kpi"><b>0</b>Data Pegawai</div><div class="kpi"><b>Aktif</b>Status Sistem</div></div><div class="panel"><span class="status-pill">BACKEND REAL AKTIF</span><h3>Portal Perhitungan Otomatis</h3><p>Login, pendaftaran akun, satker, dan permintaan reset password sudah menggunakan backend Supabase. Tahap berikutnya adalah mengaktifkan modul perhitungan Uang Makan, Tukin, Data Pegawai, dan arsip pada dashboard ini.</p></div></main>
+  </div>
+</section>
+
+<script>
+const API='https://aplfcoksokhojieypsna.supabase.co/functions/v1/portal-api';
+const $=id=>document.getElementById(id);
+async function api(action,opt={}){try{const r=await fetch(API+'?action='+encodeURIComponent(action),opt);let d={};try{d=await r.json()}catch{d={error:'Respons server tidak valid'}}return{ok:r.ok,status:r.status,data:d}}catch(e){return{ok:false,status:0,data:{error:'Tidak dapat terhubung ke server.'}}}}
+function togglePw(){$('lp').type=$('lp').type==='password'?'text':'password'}
+function openReg(){$('regmodal').classList.add('open');loadInstitutions()}
+function closeReg(){$('regmodal').classList.remove('open')}
+function msg(id,text,ok=false){const e=$(id);e.textContent=text;e.className='msg show '+(ok?'ok':'err')}
+async function loadInstitutions(){const r=await api('institutions');if(!r.ok){msg('regmsg',r.data.error||'Gagal memuat satker');return}$('ri').innerHTML='<option value="">Pilih Satker / Instansi</option>'+r.data.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.code)+' — '+esc(x.name)+'</option>').join('')}
+async function signupNow(){const body={username:$('ru').value,password:$('rp').value,institution_id:$('ri').value,full_name:$('rn').value,nip:$('rnip').value,phone:$('rphone').value};const r=await api('signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});msg('regmsg',r.data.message||r.data.error||'Gagal',r.ok);if(r.ok)setTimeout(closeReg,1800)}
+async function loginNow(){const r=await api('login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:$('lu').value,password:$('lp').value})});if(!r.ok){$('loginmsg').textContent=r.data.error||'Login gagal';return}$('loginmsg').textContent='';if($('remember').checked)localStorage.setItem('portal_session',JSON.stringify(r.data));showApp(r.data.profile)}
+function showApp(p){$('login').style.display='none';$('app').style.display='block';$('userbox').innerHTML='<b>'+esc(p.full_name||p.username)+'</b><br><small>'+esc(p.institution_name||'')+'</small><br><small>'+esc(p.role||'user')+'</small>';$('hello').textContent='Selamat datang, '+(p.full_name||p.username)+'.'}
+function esc(s){return String(s||'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]))}
+function logoutNow(){localStorage.removeItem('portal_session');location.reload()}
+async function requestReset(){const u=prompt('Masukkan username akun yang ingin di-reset:');if(!u)return;const r=await api('reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:u})});alert(r.data.message||r.data.error||'Permintaan diproses')}
+try{const s=JSON.parse(localStorage.getItem('portal_session')||'null');if(s&&s.profile)showApp(s.profile)}catch(e){}
+</script>
+</body>
+</html>
