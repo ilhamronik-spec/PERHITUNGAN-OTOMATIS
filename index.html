@@ -38,7 +38,21 @@
 const API='https://aplfcoksokhojieypsna.supabase.co/functions/v1/portal-api';
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-async function call(action,options={}){try{const headers=new Headers(options.headers||{}),query=options.query||'';const init=Object.assign({},options,{headers:headers});delete init.query;if(currentSession&&currentSession.access_token&&!headers.has('authorization'))headers.set('authorization','Bearer '+currentSession.access_token);const response=await fetch(API+'?action='+encodeURIComponent(action)+query,init);let data={};try{data=await response.json()}catch{}return{ok:response.ok,status:response.status,data}}catch{return{ok:false,status:0,data:{error:'Koneksi ke server tidak tersedia. Periksa jaringan Anda lalu coba kembali.'}}}}
+async function portalFetch(action,options={}){try{const headers=new Headers(options.headers||{}),query=options.query||'';const init=Object.assign({},options,{headers:headers});delete init.query;if(currentSession&&currentSession.access_token&&!headers.has('authorization'))headers.set('authorization','Bearer '+currentSession.access_token);const response=await fetch(API+'?action='+encodeURIComponent(action)+query,init);let data={};try{data=await response.json()}catch{}return{ok:response.ok,status:response.status,data}}catch{return{ok:false,status:0,data:{error:'Koneksi ke server tidak tersedia. Periksa jaringan Anda lalu coba kembali.'}}}}
+async function call(action,options={}){
+ const authenticated=currentSession&&!['login','refresh','signup','reset','institutions'].includes(action);
+ if(authenticated&&!portalAccessIsUsable(currentSession)){
+  const renewal=await renewPortalSession();
+  if(!renewal.ok&&!portalAccessIsUsable(currentSession,0))return renewal;
+ }
+ const result=await portalFetch(action,options);
+ if(authenticated&&result.status===401&&currentSession){
+  const renewal=await renewPortalSession(true);
+  if(renewal.ok)return portalFetch(action,options);
+  return renewal;
+ }
+ return result;
+}
 function setBusy(id,busy,label){const button=$(id);button.disabled=busy;button.textContent=busy?'Memproses…':label}
 function togglePw(){const input=$('lp'),button=document.querySelector('.eye'),shown=input.type==='text';input.type=shown?'password':'text';button.setAttribute('aria-pressed',String(!shown));button.setAttribute('aria-label',shown?'Tampilkan password':'Sembunyikan password')}
 function openModal(id){$(id).classList.add('open')}function closeModal(id){$(id).classList.remove('open')}
@@ -47,11 +61,37 @@ function showMsg(id,text,ok){const element=$(id);element.textContent=text;elemen
 async function loadInstitutions(){const select=$('ri');select.innerHTML='<option value="">Memuat satker...</option>';const result=await call('institutions');if(!result.ok||!Array.isArray(result.data)){select.innerHTML='<option value="">Daftar satker belum dapat dimuat</option>';showMsg('regmsg',result.data.error||'Gagal memuat daftar satker.');return}select.innerHTML='<option value="">Pilih Satker / Instansi</option>'+result.data.map(function(item){return '<option value="'+esc(item.id)+'">'+esc(item.code)+' — '+esc(item.name)+'</option>'}).join('')}
 async function signupNow(event){event.preventDefault();const nip=$('rnip').value.trim();if(!/^[0-9]{18}$/.test(nip)){showMsg('regmsg','NIP harus berisi tepat 18 digit.');$('rnip').focus();return}const body={username:$('ru').value.trim(),password:$('rp').value,institution_id:$('ri').value,full_name:$('rn').value.trim(),nip:nip,phone:$('rphone').value.trim()};if(Object.values(body).some(function(value){return !value})){showMsg('regmsg','Mohon lengkapi seluruh data pendaftaran.');return}setBusy('signupbutton',true,'Daftar Akun');const result=await call('signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});setBusy('signupbutton',false,'Daftar Akun');showMsg('regmsg',result.data.message||result.data.error||(result.ok?'Pendaftaran berhasil.':'Pendaftaran gagal.'),result.ok);if(result.ok)setTimeout(closeReg,1700)}
 function persistPortalSession(data,username,remember){const saved=Object.assign({},data,{saved_at:Date.now()});sessionStorage.setItem('portal_session',JSON.stringify(saved));sessionStorage.setItem('portal_session_username',username);if(remember){localStorage.setItem('portal_session',JSON.stringify(saved));localStorage.setItem('portal_remember_username',username)}else{localStorage.removeItem('portal_session');localStorage.removeItem('portal_remember_username')}return saved}
-function clearPortalSession(){currentSession=null;sessionStorage.removeItem('portal_session');sessionStorage.removeItem('portal_session_username');localStorage.removeItem('portal_session');localStorage.removeItem('portal_remember_username')}
+var portalSessionGeneration=0,portalRefreshPromise=null;
+function clearPortalSession(){portalSessionGeneration++;currentSession=null;sessionStorage.removeItem('portal_session');sessionStorage.removeItem('portal_session_username');localStorage.removeItem('portal_session');localStorage.removeItem('portal_remember_username')}
 /* Jangan menukar refresh token setiap halaman dimuat. Refresh token dapat berotasi;
    akses token yang masih hidup tetap sah dan aman dipakai saat halaman direfresh. */
 function portalTokenExpiry(token){try{var part=String(token||'').split('.')[1];if(!part)return 0;var base=part.replace(/-/g,'+').replace(/_/g,'/');var payload=JSON.parse(atob(base));return Number(payload&&payload.exp||0)*1000}catch(error){return 0}}
-function portalAccessIsUsable(session,marginMs){var expiry=portalTokenExpiry(session&&session.access_token);return expiry>Date.now()+Number(marginMs||90000)}
+function portalAccessIsUsable(session,marginMs){var expiry=portalTokenExpiry(session&&session.access_token);return expiry>Date.now()+Number(marginMs===undefined?90000:marginMs)}
+function latestPortalSession(){
+ return [sessionStorage.getItem('portal_session'),localStorage.getItem('portal_session')].map(function(raw){try{return JSON.parse(raw||'null')}catch{return null}}).filter(function(s){return s&&s.access_token&&s.profile}).sort(function(a,b){return Number(b.saved_at||0)-Number(a.saved_at||0)})[0]||null;
+}
+function portalSessionExpired(message){clearPortalSession();currentProfile=null;$('app').style.display='none';$('login').style.display='';$('loginmsg').className='login-msg';$('loginmsg').textContent=message||'Sesi telah berakhir. Silakan masuk kembali.'}
+async function renewPortalSession(force=false){
+ if(portalRefreshPromise)return portalRefreshPromise;
+ const generation=portalSessionGeneration;
+ const work=async function(){
+  const newer=latestPortalSession();
+  if(currentSession&&newer&&newer.profile.user_id===currentSession.profile.user_id&&Number(newer.saved_at||0)>Number(currentSession.saved_at||0)){currentSession=newer;force=false}
+  if(!currentSession)return{ok:false,status:401,data:{error:'Silakan masuk kembali.'}};
+  if(!force&&portalAccessIsUsable(currentSession))return{ok:true,status:200,data:currentSession};
+  if(!currentSession.refresh_token){portalSessionExpired();return{ok:false,status:401,data:{error:'Silakan masuk kembali.'}}}
+  const result=await portalFetch('refresh',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({refresh_token:currentSession.refresh_token})});
+  if(generation!==portalSessionGeneration)return{ok:false,status:401,data:{error:'Sesi sudah ditutup.'}};
+  if(result.ok&&result.data.access_token&&result.data.refresh_token&&result.data.profile){
+   const username=sessionStorage.getItem('portal_session_username')||localStorage.getItem('portal_remember_username')||result.data.profile.username||'';
+   currentSession=persistPortalSession(result.data,username,Boolean(localStorage.getItem('portal_session')));currentProfile=currentSession.profile;
+  }else if(result.status===401||result.status===403){portalSessionExpired(result.data.error)}
+  else if(result.ok)return{ok:false,status:503,data:{error:'Pembaruan sesi belum lengkap. Coba kembali.'}};
+  return result;
+ };
+ portalRefreshPromise=(async function(){try{return navigator.locks?await navigator.locks.request('portal-session-refresh',work):await work()}finally{portalRefreshPromise=null}})();
+ return portalRefreshPromise;
+}
 async function loginNow(event){event.preventDefault();const username=$('lu').value.trim(),password=$('lp').value;if(!username||!password){$('loginmsg').textContent='Username dan password wajib diisi.';return}const message=$('loginmsg');message.className='login-msg';message.textContent='';setBusy('loginbutton',true,'↪   Masuk ke Sistem');const result=await call('login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:username,password:password})});setBusy('loginbutton',false,'↪   Masuk ke Sistem');if(!result.ok||!result.data.profile||!result.data.access_token){message.textContent=result.data.error||result.data.message||'Login gagal. Silakan periksa kembali data Anda.';return}const session=persistPortalSession(result.data,username,$('remember').checked);message.className='login-msg ok';message.textContent='Login berhasil. Membuka sistem…';showApp(session.profile,session)}
 async function requestReset(event){event.preventDefault();const username=$('resetuser').value.trim();if(!username){showMsg('resetmsg','Username wajib diisi.');return}setBusy('resetbutton',true,'Kirim Permintaan');const result=await call('reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:username})});setBusy('resetbutton',false,'Kirim Permintaan');showMsg('resetmsg',result.data.message||result.data.error||(result.ok?'Permintaan reset telah dikirim.':'Permintaan gagal dikirim.'),result.ok);if(result.ok)setTimeout(closeReset,1700)}
 function moduleCard(title,steps,note){return '<section class="panel"><h2>'+title+'</h2><p>Fondasi modul telah disiapkan tanpa membuat data atau hasil hitung palsu.</p><div class="feature-list">'+steps.map(function(step,index){return '<div class="feature"><b>0'+(index+1)+'</b><span>'+step+'</span></div>'}).join('')+'</div><div class="notice">'+note+'</div></section>'}
@@ -146,7 +186,7 @@ function mealOutputPeriod(data){var source=data.source||calcCache.mealSource||{}
 function mealOutputMonth(month){return['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][Number(month)-1]||String(month).padStart(2,'0')}
 function outputSafeName(value){return String(value||'').replace(/[\\/:*?"<>|]/g,'_').slice(0,80)||'TANPA_NAMA'}
 function downloadOutput(content,name,type){var blob=new Blob([content],{type:type||'application/octet-stream'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1200)}
-function mealSourceMap(data){var source=data.source||calcCache.mealSource||{},map=new Map();(source.items||[]).forEach(function(item){map.set(item.nip,item)});return map}
+function mealSourceMap(data){var source=data.source||(!data.run_id?calcCache.mealSource:null)||{},map=new Map();(data.rows||[]).forEach(function(row){map.set(String(row.nip),Object.assign({},row.raw_data||{},row))});(source.items||[]).forEach(function(item){map.set(String(item.nip),Object.assign({},map.get(String(item.nip))||{},item))});return map}
 function mealOutputGroups(data){var groups=new Map();data.rows.forEach(function(row){var name=String(row.child_satker_code||row.raw_data&&row.raw_data.child_satker_code||'BELUM TERPETAKAN').trim()||'BELUM TERPETAKAN';if(!groups.has(name))groups.set(name,[]);groups.get(name).push(row)});return Array.from(groups.entries()).sort(function(a,b){return a[0].localeCompare(b[0])})}
 function mealOutputDates(row){return row.raw_data&&Array.isArray(row.raw_data.attendance_dates)?row.raw_data.attendance_dates:[]}
 function applyMealSheetLayout(sheet,widths){sheet['!cols']=widths.map(function(width){return{wch:width}});sheet['!autofilter']={ref:sheet['!ref']}}
@@ -224,15 +264,22 @@ async function loadRunArchive(){var box=$('archive-list');if(!box)return;box.inn
 exportCalcExcel=function(){var data=calcCache.results;if(!data)return;if(data.kind!=='uang_makan')return exportCalcExcelBase();if(!window.XLSX){alert('Pembaca Excel belum siap.');return}try{var output=buildMealWorkbook(data);if(!output)throw new Error('Workbook tidak dapat dibuat.');styleMealWorkbook(output);window.XLSX.writeFile(output.book,'REKAP FINAL UANG MAKAN '+output.period.year+'-'+String(output.period.month).padStart(2,'0')+'_'+data.run_id+'.xlsx')}catch(error){console.error(error);alert('Excel tidak dapat dibuat: '+(error&&error.message||'silakan coba kembali.'))}}
 /* ADK harus selalu memakai periode hasil yang tersimpan, bukan tanggal komputer. */
 function mealOutputPeriod(data){var source=data&&data.source||calcCache.mealSource||{},year=Number(data&&data.period_year)||Number(source.year)||Number($('calc-year')&&$('calc-year').value),month=Number(data&&data.period_month)||Number(source.month)||Number($('calc-month')&&$('calc-month').value);return{year:year,month:month}}
-function mealOutputDates(row,period){var target=period||mealOutputPeriod(calcCache.results||{}),seen=new Set(),out=[];(row&&row.raw_data&&Array.isArray(row.raw_data.attendance_dates)?row.raw_data.attendance_dates:[]).forEach(function(value){var match=String(value||'').match(/(20\d{2})[-\/\.](0?[1-9]|1[0-2])[-\/\.](0?[1-9]|[12]\d|3[01])/);if(!match)return;var date=match[1]+'-'+String(match[2]).padStart(2,'0')+'-'+String(match[3]).padStart(2,'0');if(Number(match[1])!==Number(target.year)||Number(match[2])!==Number(target.month)||seen.has(date))return;seen.add(date);out.push(date)});return out.sort()}
+function mealOutputDates(row,period){var target=period||mealOutputPeriod(calcCache.results||{}),seen=new Set(),out=[];(row&&row.raw_data&&Array.isArray(row.raw_data.attendance_dates)?row.raw_data.attendance_dates:[]).forEach(function(value){var match=String(value||'').trim().match(/^(20[0-9]{2})[-\/\.](1[0-2]|0?[1-9])[-\/\.](3[01]|[12][0-9]|0?[1-9])(?:$|T|\s)/);if(!match)return;var y=Number(match[1]),m=Number(match[2]),d=Number(match[3]),check=new Date(Date.UTC(y,m-1,d));if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return;var date=match[1]+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(y!==Number(target.year)||m!==Number(target.month)||seen.has(date))return;seen.add(date);out.push(date)});return out.sort()}
 function mealAdkText(rows,period){var seen=new Set(),lines=[];(rows||[]).forEach(function(row){var nip=String(row&&row.nip||'').replace(/\D/g,'');if(!/^\d{18}$/.test(nip))return;mealOutputDates(row,period).forEach(function(date){var line=nip+'\t'+date;if(!seen.has(line)){seen.add(line);lines.push(line)}})});return lines.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true})}).join('\r\n')}
 var processCalculationWithSavedPeriod=processCalculation;processCalculation=async function(kind){var period=calcPeriod(),before=calcCache.results&&calcCache.results.run_id;await processCalculationWithSavedPeriod(kind);var data=calcCache.results;if(data&&data.kind===kind&&data.run_id!==before){data.period_year=period.period_year;data.period_month=period.period_month;if(kind==='uang_makan')data.source=calcCache.mealSource;renderCalcResult('calc-result')}}
 exportCalcTxt=function(){var data=calcCache.results;if(!data)return;if(data.kind!=='uang_makan')return exportCalcTxtBase();var period=mealOutputPeriod(data);if(!period.year||!period.month){alert('Periode hasil tidak ditemukan. Buka kembali arsip perhitungan ini.');return}downloadOutput(mealAdkText(data.rows,period),'Uang_Makan_'+mealOutputMonth(period.month)+'_'+period.year+'.txt','text/plain;charset=utf-8')}
 exportMealAdkByGroup=function(){var data=calcCache.results;if(!data||data.kind!=='uang_makan')return;var period=mealOutputPeriod(data);if(!period.year||!period.month){alert('Periode hasil tidak ditemukan. Buka kembali arsip perhitungan ini.');return}mealOutputGroups(data).forEach(function(group,index){setTimeout(function(){downloadOutput(mealAdkText(group[1],period),'Uang_Makan_'+mealOutputMonth(period.month)+'_'+period.year+'_'+outputSafeName(group[0])+'.txt','text/plain;charset=utf-8')},index*300)})}
 async function openRun(runId){var result=await call('run-results',{query:'&run_id='+encodeURIComponent(runId)});if(!result.ok){alert(result.data.error||'Hasil arsip tidak dapat dibaca.');return}var run=result.data.run||{};calcCache.results={kind:run.kind,run_id:runId,period_year:Number(run.period_year),period_month:Number(run.period_month),rows:result.data.rows||[],stats:run.stats||{}};renderCalcResult('archive-result')}
-async function restoreRememberedSession(){const remembered=localStorage.getItem('portal_session'),tabSession=sessionStorage.getItem('portal_session'),username=localStorage.getItem('portal_remember_username')||sessionStorage.getItem('portal_session_username')||'';if(username)$('lu').value=username;if(remembered)$('remember').checked=true;let session=null;try{session=JSON.parse(remembered||tabSession||'null')}catch(error){clearPortalSession();return}if(!session||!session.access_token||!session.profile){if(session)clearPortalSession();return}$('loginmsg').className='login-msg ok';$('loginmsg').textContent='Memulihkan sesi…';if(portalAccessIsUsable(session)){showApp(session.profile,session);return}if(!session.refresh_token){showApp(session.profile,session);return}const result=await call('refresh',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});if(result.ok&&result.data.profile&&result.data.access_token){const renewed=persistPortalSession(result.data,username,Boolean(remembered));showApp(renewed.profile,renewed);return}if(portalAccessIsUsable(session,0)){showApp(session.profile,session);return}if(result.status===401||result.status===403){clearPortalSession();$('loginmsg').className='login-msg';$('loginmsg').textContent='Sesi telah berakhir. Silakan masuk kembali.';return}showApp(session.profile,session)}
+async function restoreRememberedSession(){
+ const session=latestPortalSession(),username=sessionStorage.getItem('portal_session_username')||localStorage.getItem('portal_remember_username')||'';
+ if(username)$('lu').value=username;if(localStorage.getItem('portal_session'))$('remember').checked=true;
+ if(!session)return;currentSession=session;
+ $('loginmsg').className='login-msg ok';$('loginmsg').textContent='Memulihkan sesi…';
+ if(!portalAccessIsUsable(session))await renewPortalSession();
+ // A network outage does not revoke a session. Authenticated API calls remain guarded.
+ if(currentSession)showApp(currentSession.profile,currentSession);
+}
 restoreRememberedSession()
 </script>
 </body>
 </html>
-
